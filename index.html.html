@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>威尼斯行程可视化｜4月29日-30日</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://tile.openstreetmap.org">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <style>
+    :root {
+      --bg: #f7f1e7;
+      --bg-2: #efe3d1;
+      --card: rgba(255, 251, 245, 0.92);
+      --text: #3c2d23;
+      --muted: #796556;
+      --brand: #8c3b2a;
+      --brand-2: #c36a42;
+      --brand-3: #6b7a46;
+      --gold: #c7a96b;
+      --line: #e7d9c7;
+      --shadow: 0 18px 40px rgba(92, 58, 37, 0.12);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(199,169,107,.16), transparent 30%),
+        radial-gradient(circle at 100% 20%, rgba(107,122,70,.09), transparent 24%),
+        linear-gradient(180deg, var(--bg) 0%, #fcf8f2 48%, #f4ede3 100%);
+      color: var(--text);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(140,59,42,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(140,59,42,.03) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,.4), transparent 90%);
+      opacity: .35;
+    }
+    a { color: var(--brand); text-decoration: none; }
+    .page {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 30px 18px 64px;
+      position: relative;
+      z-index: 1;
+    }
+    .hero {
+      background:
+        linear-gradient(135deg, rgba(84,42,29,.96), rgba(140,59,42,.94) 45%, rgba(195,106,66,.92)),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='rgba(255,248,240,0.13)' stroke-width='2'%3E%3Cpath d='M20 120h200M120 20v200M45 45l150 150M195 45L45 195'/%3E%3Ccircle cx='120' cy='120' r='72'/%3E%3C/g%3E%3C/svg%3E");
+      color: #fff8f2;
+      border-radius: 34px;
+      padding: 34px 32px;
+      box-shadow: 0 24px 55px rgba(84,42,29,.18);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.16);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 35%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -55px;
+      bottom: -45px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(255,245,230,.22), rgba(255,255,255,0) 70%);
+      border-radius: 50%;
+      filter: blur(3px);
+    }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 38px;
+      letter-spacing: .4px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700;
+    }
+    .hero p { margin: 8px 0; line-height: 1.85; max-width: 980px; color: rgba(255,248,242,.95); }
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;
+    }
+    .pill {
+      background: rgba(255,248,242,.12);
+      color: #fff9f2;
+      border: 1px solid rgba(255,248,242,.18);
+      padding: 10px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      font-size: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(255,252,248,.98), rgba(253,247,239,.95));
+      border: 1px solid rgba(231,217,199,.95);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--brand), var(--gold), var(--brand-3));
+      opacity: .9;
+    }
+    .summary h2, .day h2 {
+      margin: 0 0 12px;
+      font-size: 28px;
+      font-family: Georgia, "Times New Roman", serif;
+      color: #4c3427;
+    }
+    .summary ul {
+      margin: 0; padding-left: 20px; line-height: 1.95; color: var(--muted);
+    }
+    .day { margin-top: 28px; }
+    .day-head {
+      display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 14px;
+    }
+    .day-head h2 { margin: 0; }
+    .day-head .sub { color: var(--muted); font-size: 15px; }
+    .map-wrap { position: relative; }
+    .map {
+      height: 440px;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+    }
+    .legend {
+      position: absolute; left: 16px; bottom: 16px;
+      background: rgba(255,251,245,.94);
+      border: 1px solid rgba(231,217,199,.95);
+      border-radius: 16px; padding: 12px 14px;
+      box-shadow: 0 10px 22px rgba(60,45,35,.09); font-size: 13px; line-height: 1.7;
+      color: #5f4a3c;
+    }
+    .timeline { display: grid; gap: 16px; }
+    .stop {
+      display: grid;
+      grid-template-columns: 188px 1fr;
+      gap: 18px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      overflow: hidden;
+      background: linear-gradient(180deg,#fffdfa,#fbf4eb);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      position: relative;
+    }
+    .stop::after {
+      content: "";
+      position: absolute;
+      inset: auto 18px 0 18px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(195,106,66,.28), transparent);
+    }
+    .stop:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 28px rgba(76,52,39,.1);
+      border-color: #dec6ad;
+    }
+    .thumb {
+      min-height: 182px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      filter: saturate(1.02) contrast(1.02);
+    }
+    .thumb::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(60,45,35,.05), rgba(60,45,35,.28));
+    }
+    .step-no {
+      position: absolute; top: 12px; left: 12px;
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; display: grid; place-items: center;
+      font-weight: 700; box-shadow: 0 8px 22px rgba(60,45,35,.28); z-index: 1;
+      border: 2px solid rgba(255,248,242,.72);
+    }
+    .stop-body { padding: 18px 18px 16px 0; }
+    .time {
+      display: inline-block;
+      font-size: 13px; color: var(--brand); font-weight: 700; letter-spacing: .3px;
+      background: rgba(195,106,66,.08);
+      border: 1px solid rgba(195,106,66,.16);
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+    .stop h3 {
+      margin: 10px 0 8px;
+      font-size: 25px;
+      font-family: Georgia, "Times New Roman", serif;
+      color: #432f24;
+    }
+    .brief { color: var(--muted); line-height: 1.85; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+    .chip {
+      border-radius: 999px; padding: 6px 11px; font-size: 12px;
+      background: #f6ede4; color: #714f3f; border: 1px solid #ead6c3;
+    }
+    details {
+      background: linear-gradient(180deg,#fffdf8,#f8efe4);
+      border: 1px dashed #dcc3ab; border-radius: 16px;
+      margin-top: 12px; padding: 11px 13px;
+    }
+    summary {
+      cursor: pointer; font-weight: 700; color: var(--text); font-family: Georgia, "Times New Roman", serif;
+    }
+    details p { margin: 10px 0 0; color: #574236; line-height: 1.9; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 14px; border-radius: 12px; font-weight: 700; font-size: 14px;
+      border: 1px solid #e4d2bf; background: linear-gradient(180deg,#fffefb,#f6eee5);
+      color: #5f4032;
+      box-shadow: 0 6px 12px rgba(92,58,37,.05);
+    }
+    .btn.primary {
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color: #fff9f2; border-color: transparent;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .transport-table {
+      width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; overflow: hidden;
+      border-radius: 18px; border: 1px solid var(--line); background: #fffdfa;
+    }
+    .transport-table th, .transport-table td {
+      padding: 12px 14px; text-align: left; border-bottom: 1px solid #f0e6da; vertical-align: top;
+    }
+    .transport-table th {
+      background: linear-gradient(180deg, #f8efe5, #f3e6d6);
+      color: #654737; font-family: Georgia, "Times New Roman", serif; font-size: 15px;
+    }
+    .transport-table tr:last-child td { border-bottom: none; }
+    .small { color: var(--muted); font-size: 13px; line-height: 1.8; }
+    .source-list {
+      display: grid; gap: 8px; font-size: 13px; color: var(--muted); line-height: 1.7;
+      word-break: break-word;
+    }
+    .footer-note {
+      margin-top: 18px; padding: 16px 18px; border-radius: 18px;
+      background: linear-gradient(180deg,#f9f1e7,#f5eadf); color: #60483a; line-height: 1.85;
+      border: 1px solid #e3d3c0;
+    }
+    .marker-num {
+      width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color: #fff; font-weight: 800; display: grid; place-items: center; border: 2px solid #fff7ef;
+      box-shadow: 0 8px 14px rgba(140,59,42,.28);
+      font-size: 13px;
+    }
+    
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1.08fr .92fr;
+      gap: 22px;
+      align-items: stretch;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+    }
+    .eyebrow {
+      display: inline-block;
+      width: fit-content;
+      margin-bottom: 10px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,244,235,.18);
+      background: rgba(255,248,242,.08);
+      font-size: 12px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(255,244,235,.9);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    .hero-tagline {
+      margin-top: -2px;
+      font-size: 15px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255,238,227,.78);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    .hero-gallery {
+      display: grid;
+      grid-template-columns: 1.35fr .95fr;
+      grid-template-rows: 220px 150px;
+      gap: 14px;
+      align-self: stretch;
+    }
+    .art-panel {
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid rgba(255,244,235,.2);
+      background: rgba(255,248,242,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 14px 26px rgba(43,22,15,.18);
+      min-height: 0;
+    }
+    .art-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(46,25,17,.1), transparent 42%, rgba(46,25,17,.44));
+      z-index: 1;
+      pointer-events: none;
+    }
+    .art-panel::after {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border: 1px solid rgba(255,247,238,.18);
+      border-radius: 18px;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .art-image {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      filter: sepia(.18) saturate(.95) contrast(1.03) brightness(.88);
+      transform: scale(1.03);
+    }
+    .art-wide { grid-row: 1 / span 2; }
+    .art-tall { grid-column: 2; grid-row: 1; }
+    .art-small { grid-column: 2; grid-row: 2; }
+    .art-panel figcaption {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 14px;
+      z-index: 2;
+      color: #fff3e9;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-family: Georgia, "Times New Roman", serif;
+      text-shadow: 0 2px 10px rgba(0,0,0,.35);
+    }
+    .art-credit {
+      margin-top: 14px;
+      color: rgba(255,242,233,.78);
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 780px;
+    }
+@media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .stop { grid-template-columns: 1fr; }
+      .stop-body { padding: 0 14px 16px; }
+      .thumb { min-height: 220px; }
+      .hero { padding: 28px 22px; }
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-gallery { grid-template-columns: 1fr 1fr; grid-template-rows: 170px 130px; }
+      .art-wide { grid-column: 1 / -1; grid-row: 1; }
+      .art-tall { grid-column: 1; grid-row: 2; }
+      .art-small { grid-column: 2; grid-row: 2; }
+      .hero h1 { font-size: 32px; }
+      .summary h2, .day h2 { font-size: 25px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <div class="eyebrow">Venezia Letteraria · Rinascimento · Canal Grande</div>
+          <h1>威尼斯 1.5 天可视化行程</h1>
+          <p class="hero-tagline">La Serenissima, in a slower and more poetic light</p>
+          <p>基于你已经确定的方案制作：<strong>4月29日晚上在 Rialto / San Polo 吃饭</strong>；<strong>4月30日上午在 Dorsoduro 深度慢逛</strong>。页面里放进了每天的路线总览地图、每段距离与交通方式、Google Maps 跳转、景点图片，以及点开即可查看的“导游式”详细介绍。</p>
+          <div class="meta">
+            <div class="pill">Day 1：机场 → 酒店 → Salute → Punta → Peggy → Accademia → 圣马可 → Rialto / San Polo</div>
+            <div class="pill">Day 2：酒店 → Salute → Punta → Zattere → Dorsoduro → 酒店 → 火车站</div>
+            <div class="pill">酒店：iH Hotels Venezia Salute Palace · Fondamenta Fornace 222</div>
+          </div>
+          <div class="art-credit">背景灵感：Gentile Bellini《Procession in St. Mark’s Square》、Vittore Carpaccio《Two Venetian Ladies》与《The Lion of St Mark》——均为文艺复兴时期威尼斯相关公共领域作品。</div>
+        </div>
+        <div class="hero-gallery" aria-label="文艺复兴威尼斯名画背景拼贴">
+          <figure class="art-panel art-wide">
+            <div class="art-image" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Accademia%20-%20Procession%20in%20piazza%20San%20Marco%20by%20Gentile%20Bellini.jpg');"></div>
+            <figcaption>Gentile Bellini · 圣马可广场行列</figcaption>
+          </figure>
+          <figure class="art-panel art-tall">
+            <div class="art-image" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Vittore%20Carpaccio%20Two%20Venetian%20Ladies%201500.jpg'); background-position:center top;"></div>
+            <figcaption>Vittore Carpaccio · 两位威尼斯人</figcaption>
+          </figure>
+          <figure class="art-panel art-small">
+            <div class="art-image" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/1516%20Vittore%20Carpacci%2C%20The%20Lion%20of%20St%20Mark%20%28detail%29%20Tempera%20on%20canvas%2C%20Palazzo%20Ducale%2C%20Venice.jpg');"></div>
+            <figcaption>Carpaccio · 圣马可之狮</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card summary">
+        <h2>这份 HTML 怎么看</h2>
+        <ul>
+          <li>每一天都有一张路线总览图，数字与下方行程卡片对应。</li>
+          <li>景点卡片里写了时间、交通方式、步行距离、简短介绍。</li>
+          <li>点击“展开详细导览”后，会看到更像导游口播的深入说明。</li>
+          <li>点击“Google Maps”可直接跳到该点位导航。</li>
+          <li>市区内以步行为主；真正需要公共交通的是机场进城和离开去火车站两段。</li>
+        </ul>
+      </section>
+
+      <section class="card summary">
+        <h2>你的节奏重点</h2>
+        <ul>
+          <li><strong>29号下午：</strong>经典线串起来，但不强求每个点都深逛，重点是一路走的过程。</li>
+          <li><strong>29号晚上：</strong>把最热闹、最像“第一次来威尼斯”的氛围留给 Rialto / San Polo。</li>
+          <li><strong>30号上午：</strong>别折回圣马可，利用酒店在 Dorsoduro / Salute 的优势，轻松收尾。</li>
+          <li><strong>30号中午：</strong>提前离开酒店去坐船到 Santa Lucia 火车站，避免赶船赶车。</li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="day">
+      <div class="day-head">
+        <div>
+          <h2>Day 1｜4月29日（到达日）</h2>
+          <div class="sub">关键词：入城、经典视角、黄昏去圣马可、晚上在 Rialto / San Polo 吃饭</div>
+        </div>
+        <div class="pill" style="color:#fff9f2;background:linear-gradient(135deg,#8c3b2a,#c36a42);border:none;box-shadow:0 10px 24px rgba(140,59,42,.18);">市区内主要交通：步行</div>
+      </div>
+
+      <div class="grid">
+        <div class="card map-wrap">
+          <div id="map-day1" class="map"></div>
+          <div class="legend">
+            <div><strong>路线颜色</strong></div>
+            <div>深绿：步行主线</div>
+            <div>浅绿虚线：机场进城</div>
+            <div>数字顺序与右侧卡片一一对应</div>
+          </div>
+        </div>
+        <div class="timeline">
+          <article class="stop" id="d1-s1">
+            <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1514890547357-a9ee288728e0?auto=format&fit=crop&w=1200&q=80');">
+              <div class="step-no">1</div>
+            </div>
+            <div class="stop-body">
+              <div class="time">09:35–12:20</div>
+              <h3>威尼斯机场 → 酒店</h3>
+              <div class="brief">下飞机、入境、取行李后进城。建议整体预留约 2 小时 45 分钟，包含机场到本岛的交通与到酒店找路时间。</div>
+              <div class="chips">
+                <span class="chip">约 13 km</span>
+                <span class="chip">建议：机场巴士 + vaporetto / 水上巴士 / 水上出租车</span>
+                <span class="chip">酒店离 Salute 站步行约 5–10 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>这段不属于“观光时间”，而是整个行程节奏的底盘。你真正需要做的，不是一落地就冲景点，而是先顺利进入威尼斯。到本岛后，酒店在 Dorsoduro 的 Salute 一带，这个区的好处是安静、景美、离核心景点又不算远。先把行李安顿好，后面整个下午和晚上都会更顺。你住的酒店官方信息显示，从 Salute 水上巴士站步行约 5–10 分钟可到酒店；同时离 Peggy Guggenheim Collection 大约 200 米。</p>
+              </details>
+              <div class="actions">
+                <a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=iH+Hotels+Venezia+Salute+Palace+Venice">Google Maps 酒店</a>
+                <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Venice+Marco+Polo+Airport">Google Maps 机场</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="stop" id="d1-s2">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Basilica%20di%20Santa%20Maria%20della%20Salute%20in%20Venezia%201.jpg');"><div class="step-no">2</div></div>
+            <div class="stop-body">
+              <div class="time">13:10–13:40</div>
+              <h3>Santa Maria della Salute</h3>
+              <div class="brief">酒店出来后先看 Salute。它是威尼斯最有辨识度的教堂之一，也是你这次住的片区灵魂景观。</div>
+              <div class="chips">
+                <span class="chip">酒店步行约 450 m / 6–8 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：20–30 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>Salute 不只是“好看”。它是威尼斯在 1630–1631 年鼠疫后许愿而建的巴洛克教堂，由 Baldassare Longhena 设计，后来成了从水面看威尼斯时最醒目的轮廓之一。你站在这里，最值得看的不是单纯拍教堂正面，而是感受它立在大运河入口处的姿态：像是一座仪式感极强的门。第一次来威尼斯，站在这里会立刻明白这座城市为什么总被形容成戏剧性的舞台。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Santa+Maria+della+Salute+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d1-s3">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Venezia%20-%20Punta%20della%20Dogana%20-%202024-09-24%2007-52-02%20001.jpg');"><div class="step-no">3</div></div>
+            <div class="stop-body">
+              <div class="time">13:40–14:00</div>
+              <h3>Punta della Dogana</h3>
+              <div class="brief">从 Salute 再往尖角走一点，就是大运河与 Giudecca Canal 相接的经典观景点。</div>
+              <div class="chips">
+                <span class="chip">步行约 350 m / 5 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：15–20 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>这里过去是威尼斯旧海关 Dogana da Mar 的所在地，今天则兼具“城市地理的尖角”与当代艺术地标的身份。来到这里，你会非常直观地看到威尼斯的空间关系：一边是大运河入口，一边望向圣马可和 San Giorgio Maggiore。它不是那种必须买票深逛的地方，而是一个极适合“站住 5 分钟，彻底读懂地形”的点位。第一次来，这里会把你脑中的威尼斯地图立起来。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Punta+della+Dogana+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d1-s4">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Facade%20on%20Peggy%20Guggenheim%20Collection.JPG');"><div class="step-no">4</div></div>
+            <div class="stop-body">
+              <div class="time">14:00–14:30</div>
+              <h3>Peggy Guggenheim Collection</h3>
+              <div class="brief">离你酒店很近，建议轻松经过，感兴趣再入内。它是 Dorsoduro 这片最有代表性的文化坐标之一。</div>
+              <div class="chips">
+                <span class="chip">步行约 650 m / 9 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：20–30 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>Peggy Guggenheim Collection 位于 Palazzo Venier dei Leoni，馆藏核心是 Peggy Guggenheim 本人的收藏，包括 20 世纪现代艺术重要作品，也有雕塑花园和临展。对你这次行程来说，它最大的价值在于：它让 Dorsoduro 不只是“安静、好看”，还带着非常鲜明的艺术气质。哪怕你只是从外立面经过，也会感觉到这一区与圣马可那种宏大、 ceremonial 的氛围完全不同——更私密，也更有品味。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Peggy+Guggenheim+Collection+Venice">Google Maps</a><a class="btn" target="_blank" href="https://www.guggenheim-venice.it/en/">官网</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d1-s5">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Ponte%20dell%27Accademia%20Venice.jpg');"><div class="step-no">5</div></div>
+            <div class="stop-body">
+              <div class="time">14:30–15:00</div>
+              <h3>Accademia Bridge</h3>
+              <div class="brief">从 Guggenheim 往学院桥走，是 Dorsoduro 最顺的一段连接。桥上能看到非常经典的大运河视角。</div>
+              <div class="chips">
+                <span class="chip">步行约 550 m / 8 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：15–20 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>Ponte dell'Accademia 是横跨大运河的四座桥之一，木质桥身和大运河开阔视野让它格外适合停下来拍照。这个点的真正价值，不只是“桥”，而是它像一处观景阳台：站在桥上，你会看到船只、屋顶、运河弧线和两岸立面在同一画面里叠起来。这个视角非常有“威尼斯标准答案”的感觉，但因为你是从 Dorsoduro 走过来，所以体验会比单纯打卡更自然。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Accademia+Bridge+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d1-s6">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Piazza%20San%20Marco%20Venice.jpg');"><div class="step-no">6</div></div>
+            <div class="stop-body">
+              <div class="time">15:00–17:30</div>
+              <h3>一路慢走到圣马可广场</h3>
+              <div class="brief">这段是整天最值钱的路程之一：不是赶路，而是穿小巷、过小桥、慢慢走入圣马可核心区。</div>
+              <div class="chips">
+                <span class="chip">步行约 1.6 km / 22–25 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：总计 2–2.5 小时</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>Piazza San Marco 是威尼斯最核心、最 ceremonial 的公共空间，长期以来都是宗教、政治与城市展示的舞台。走入这里，你不是在“看一个广场”，而是在进入威尼斯曾经作为海上共和国时最会展示权力与美感的正面舞台。建议你到这儿时别急着只拍一张广场全景就走，而是把节奏放慢：看看钟楼、总督宫外立面、拱廊下的人流，再走到靠水边的一侧，让空间关系在脑子里真正成形。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Piazza+San+Marco+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d1-s7">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Ponte%20di%20Rialto%20Venice%201.jpg');"><div class="step-no">7</div></div>
+            <div class="stop-body">
+              <div class="time">17:30–18:40</div>
+              <h3>黄昏走向 Rialto Bridge</h3>
+              <div class="brief">从圣马可往 Rialto 慢走，把黄昏留给大运河，再在 Rialto 桥头感受第一次来威尼斯最强的记忆点。</div>
+              <div class="chips">
+                <span class="chip">步行约 1.1 km / 15–18 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：45–60 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>Rialto Bridge 是今天保存下来的四座大运河桥之一，也是最老、最有代表性的一座，现存石桥建于 1588–1591 年。它真正的魅力不只是“桥本身很有名”，而是它所在位置天然就像威尼斯商业历史的缩影：两侧过去就是繁忙的交易与市场区域。傍晚来这里特别好，因为大运河的光线、船流与桥上的人群会形成一种很有戏剧性的城市画面——这是你这次行程里最热闹的一幕。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Rialto+Bridge+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d1-s8">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Campo%20San%20Polo%20%28Venice%29.jpg');"><div class="step-no">8</div></div>
+            <div class="stop-body">
+              <div class="time">18:40–21:00</div>
+              <h3>Rialto / San Polo 晚餐 + 夜游</h3>
+              <div class="brief">你已经选定的晚饭片区。最顺的做法是：Rialto 靠 San Polo 这一侧吃，饭后在 San Polo 小巷慢慢乱走。</div>
+              <div class="chips">
+                <span class="chip">桥边到用餐区步行约 300–700 m</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">晚餐后回酒店：步行约 2.1 km / 30–35 分钟，或坐 vaporetto 回 Salute</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>San Polo 的好处在于：它离 Rialto 很近，能保留最热闹的旅行氛围，但又比圣马可广场正中心更适合坐下来认真吃顿饭。你晚饭后最值得做的不是继续刷景点，而是“无目标夜游”——转进小巷、过几座桥、看看灯光照在窄运河上的反光。很多人真正记住威尼斯，靠的不是某个门票景点，而是这种晚上的城市质感。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Campo+San+Polo+Venice">Google Maps</a></div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <h2>Day 1 交通与距离总表</h2>
+        <table class="transport-table">
+          <thead><tr><th>段落</th><th>距离 / 时间</th><th>交通方式</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>机场 → 酒店</td><td>约 13 km / 1.2–1.5 小时（不含入境取行李）</td><td>机场巴士+vaporetto / 水上巴士 / 水上出租车</td><td>进城段一定要留缓冲，威尼斯最后一段找路会比普通城市慢。</td></tr>
+            <tr><td>酒店 → Salute</td><td>约 450 m / 6–8 分钟</td><td>步行</td><td>酒店近 Salute 站，适合直接步行开启行程。</td></tr>
+            <tr><td>Salute → Punta</td><td>约 350 m / 5 分钟</td><td>步行</td><td>同一片区域，完全没必要坐船。</td></tr>
+            <tr><td>Punta → Peggy</td><td>约 650 m / 9 分钟</td><td>步行</td><td>沿路景色本身就很值。</td></tr>
+            <tr><td>Peggy → Accademia</td><td>约 550 m / 8 分钟</td><td>步行</td><td>经典 Dorsoduro 串联线。</td></tr>
+            <tr><td>Accademia → 圣马可</td><td>约 1.6 km / 22–25 分钟</td><td>步行</td><td>推荐慢走，不建议为了省几分钟去折腾船。</td></tr>
+            <tr><td>圣马可 → Rialto</td><td>约 1.1 km / 15–18 分钟</td><td>步行</td><td>黄昏时段步行体验最好。</td></tr>
+            <tr><td>Rialto / San Polo → 酒店</td><td>约 2.1 km / 30–35 分钟</td><td>步行或 vaporetto</td><td>体力好就步行回去；累了就就近坐船回 Salute。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="day">
+      <div class="day-head">
+        <div>
+          <h2>Day 2｜4月30日（离开前半天）</h2>
+          <div class="sub">关键词：Salute 清晨、Zattere 海边步道、Dorsoduro 小巷慢逛、回酒店取行李去火车站</div>
+        </div>
+        <div class="pill" style="color:#fff9f2;background:linear-gradient(135deg,#6b7a46,#9a8b58);border:none;box-shadow:0 10px 24px rgba(107,122,70,.18);">离店去车站：步行 + vaporetto</div>
+      </div>
+
+      <div class="grid">
+        <div class="card map-wrap">
+          <div id="map-day2" class="map"></div>
+          <div class="legend">
+            <div><strong>路线颜色</strong></div>
+            <div>蓝绿：上午步行小环线</div>
+            <div>蓝色虚线：酒店去 Santa Lucia 车站</div>
+            <div>把上午重心留在 Dorsoduro，不再折回圣马可</div>
+          </div>
+        </div>
+        <div class="timeline">
+          <article class="stop" id="d2-s1">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Basilica%20di%20Santa%20Maria%20della%20Salute%20in%20Venezia%201.jpg');"><div class="step-no">1</div></div>
+            <div class="stop-body">
+              <div class="time">09:20–09:50</div>
+              <h3>Salute 清晨二刷</h3>
+              <div class="brief">第二天早上再看一次 Salute，感觉会和前一天下午完全不同：更安静，也更适合拍照。</div>
+              <div class="chips">
+                <span class="chip">酒店步行约 450 m / 6–8 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：20–30 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>清晨的 Salute 是这次住 Dorsoduro 最大的红利之一。相比前一天下午的人流，这时候的光线更柔和，水边更安静，你能更轻松地感受教堂与水面、天空、对岸建筑之间的关系。这里不是在“补昨天没看够”，而是在用更松弛的状态给威尼斯收尾。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Santa+Maria+della+Salute+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d2-s2">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Venezia%20-%20Punta%20della%20Dogana%20-%202024-09-24%2007-52-02%20001.jpg');"><div class="step-no">2</div></div>
+            <div class="stop-body">
+              <div class="time">09:50–10:15</div>
+              <h3>Punta della Dogana</h3>
+              <div class="brief">第二天到这里不是看博物馆，而是把这个“城市尖角”的大景再收一次。</div>
+              <div class="chips">
+                <span class="chip">步行约 350 m / 5 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：15–20 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>如果说前一天你更多是在“认识威尼斯地图”，那今天来 Punta 的意义更像是定格告别视角。这里最适合做的事很简单：站住、看水、拍一张不用赶时间的照片。旅行快结束时，这样的点往往会变成最容易回想起来的片段。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Punta+della+Dogana+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d2-s3">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Ven%C3%A8cia1%20486-zattere.jpg');"><div class="step-no">3</div></div>
+            <div class="stop-body">
+              <div class="time">10:15–11:00</div>
+              <h3>Zattere 海边步道</h3>
+              <div class="brief">这是 30 号上午最舒服的一段。比圣马可轻松得多，更适合你离开前的状态。</div>
+              <div class="chips">
+                <span class="chip">步行约 900 m / 12 分钟</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：30–45 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>Zattere 的魅力在于开阔。威尼斯并不总是迷宫小巷，它也有这种适合沿水慢走、晒光、喝咖啡的长步道。你走在这里，会觉得城市突然松开了一点：不再是密集的小桥和穿梭人流，而是更线性的海边散步体验。离开前把时间花在这里，非常对。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Fondamenta+delle+Zattere+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d2-s4">
+            <div class="thumb" style="background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Facade%20on%20Peggy%20Guggenheim%20Collection.JPG');"><div class="step-no">4</div></div>
+            <div class="stop-body">
+              <div class="time">11:00–11:50</div>
+              <h3>Dorsoduro 小巷慢逛</h3>
+              <div class="brief">不设具体打卡点，保持朝酒店方向慢慢逛：桥、运河、小店、咖啡馆，看到喜欢的就停。</div>
+              <div class="chips">
+                <span class="chip">自由步行约 1–1.5 km</span>
+                <span class="chip">交通：步行</span>
+                <span class="chip">建议停留：40–50 分钟</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>Dorsoduro 是最适合“没有 KPI 地逛”的区。它既有学生气、艺术气，也保留了不少生活感。这里的正确逛法不是一个个景点清单，而是让巷子和桥自己带路。你这天上午真正想留住的，不是更多景点，而是那种‘我住在威尼斯片刻’的感觉。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Dorsoduro+Venice">Google Maps</a></div>
+            </div>
+          </article>
+
+          <article class="stop" id="d2-s5">
+            <div class="thumb" style="background-image:url('https://images.unsplash.com/photo-1514890547357-a9ee288728e0?auto=format&fit=crop&w=1200&q=80');"><div class="step-no">5</div></div>
+            <div class="stop-body">
+              <div class="time">11:50–13:30</div>
+              <h3>回酒店取行李 → Salute → Santa Lucia 火车站</h3>
+              <div class="brief">中午前后返回酒店取行李，步行到 Salute 站，坐 vaporetto 1 或 2 号线去 Venezia Santa Lucia 火车站。</div>
+              <div class="chips">
+                <span class="chip">酒店到 Salute 约 450 m / 6–8 分钟</span>
+                <span class="chip">Salute 到车站船程约 30 分钟</span>
+                <span class="chip">交通：步行 + vaporetto</span>
+              </div>
+              <details>
+                <summary>展开详细导览</summary>
+                <p>这一段最重要的不是风景，而是别赶。威尼斯最怕“以为自己来得及”，结果被桥、台阶、码头方向和等船时间吃掉缓冲。酒店官方给出的进出站信息是：从 Santa Lucia 可以乘 1 或 2 号线到 Salute，船程约 30 分钟；反过来离开时也可以照这个逻辑走。你只需要记住一句话：宁可早一点，不要掐点。</p>
+              </details>
+              <div class="actions"><a class="btn primary" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Venezia+Santa+Lucia+Station">Google Maps 车站</a><a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Salute+vaporetto+stop+Venice">Google Maps Salute 站</a></div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <h2>Day 2 交通与距离总表</h2>
+        <table class="transport-table">
+          <thead><tr><th>段落</th><th>距离 / 时间</th><th>交通方式</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>酒店 → Salute</td><td>约 450 m / 6–8 分钟</td><td>步行</td><td>清晨再次出发很顺。</td></tr>
+            <tr><td>Salute → Punta</td><td>约 350 m / 5 分钟</td><td>步行</td><td>超近距离观景段。</td></tr>
+            <tr><td>Punta → Zattere</td><td>约 900 m / 12 分钟</td><td>步行</td><td>开阔、舒服，不绕路。</td></tr>
+            <tr><td>Zattere → Dorsoduro 内巷 → 酒店</td><td>约 1–1.5 km / 40–50 分钟</td><td>步行</td><td>自由慢逛即可，核心是朝酒店方向回收。</td></tr>
+            <tr><td>酒店 → Salute 站</td><td>约 450 m / 6–8 分钟</td><td>步行</td><td>拖行李时节奏会更慢一点。</td></tr>
+            <tr><td>Salute → Santa Lucia 车站</td><td>船程约 30 分钟</td><td>vaporetto 1 / 2 号线</td><td>现场哪班先来坐哪班，不要为了理论最快纠结太久。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:24px;">
+      <h2>资料与信息来源</h2>
+      <div class="source-list">
+        <div>1. iH Hotels Venezia Salute Palace 官方信息：酒店位于 Fondamenta Fornace 222；从 Salute 站步行约 5–10 分钟；从 Santa Lucia 可乘 vaporetto 1 或 2 号线前往，船程约 30 分钟。</div>
+        <div>2. 酒店预订页信息：Peggy Guggenheim Collection 距酒店约 200 米。</div>
+        <div>3. Santa Maria della Salute：17 世纪巴洛克教堂，源于威尼斯对 1630–1631 年鼠疫后的誓愿。</div>
+        <div>4. Punta della Dogana：旧海关所在地，今天也是重要艺术地标。</div>
+        <div>5. Peggy Guggenheim Collection 官网：馆藏包括 Peggy 本人收藏、Schulhof 收藏、雕塑花园与临展。</div>
+        <div>6. Accademia Bridge：横跨大运河的四座桥之一。</div>
+        <div>7. Piazza San Marco：威尼斯最核心的公共仪式空间之一。</div>
+        <div>8. Rialto Bridge：现存最古老的大运河桥之一，现桥建于 1588–1591 年。</div>
+      </div>
+      <div class="footer-note">
+        说明：本页面地图使用 OpenStreetMap / Leaflet 在线底图；Google Maps 按钮用于导航跳转；景点图片主要引用 Wikimedia Commons 的公开页面图片链接。步行距离和时间为旅行规划用估算值，现场会因为人流、是否拍照、走桥绕巷而略有浮动。
+      </div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const pointsDay1 = [
+      {name:'机场', lat:45.5053, lng:12.3519, step:'1', color:'#7cc5a6', popup:'威尼斯马可波罗机场'},
+      {name:'酒店', lat:45.4308, lng:12.3312, step:'1', color:'#1b7f5c', popup:'iH Hotels Venezia Salute Palace'},
+      {name:'Salute', lat:45.4307, lng:12.3343, step:'2', color:'#1b7f5c', popup:'Santa Maria della Salute'},
+      {name:'Punta', lat:45.4308, lng:12.3365, step:'3', color:'#1b7f5c', popup:'Punta della Dogana'},
+      {name:'Peggy', lat:45.4308, lng:12.3317, step:'4', color:'#1b7f5c', popup:'Peggy Guggenheim Collection'},
+      {name:'Accademia', lat:45.4317, lng:12.3290, step:'5', color:'#1b7f5c', popup:'Accademia Bridge'},
+      {name:'圣马可', lat:45.4342, lng:12.3389, step:'6', color:'#1b7f5c', popup:'Piazza San Marco'},
+      {name:'Rialto', lat:45.4381, lng:12.3359, step:'7', color:'#1b7f5c', popup:'Rialto Bridge'},
+      {name:'San Polo', lat:45.4370, lng:12.3310, step:'8', color:'#1b7f5c', popup:'Campo San Polo'}
+    ];
+
+    const pointsDay2 = [
+      {name:'酒店', lat:45.4308, lng:12.3312, step:'0', color:'#245f9e', popup:'iH Hotels Venezia Salute Palace'},
+      {name:'Salute', lat:45.4307, lng:12.3343, step:'1', color:'#245f9e', popup:'Santa Maria della Salute'},
+      {name:'Punta', lat:45.4308, lng:12.3365, step:'2', color:'#245f9e', popup:'Punta della Dogana'},
+      {name:'Zattere', lat:45.4293, lng:12.3255, step:'3', color:'#245f9e', popup:'Fondamenta delle Zattere'},
+      {name:'Dorsoduro', lat:45.4320, lng:12.3268, step:'4', color:'#245f9e', popup:'Dorsoduro 小巷区域'},
+      {name:'酒店回收', lat:45.4308, lng:12.3312, step:'5', color:'#245f9e', popup:'回酒店取行李'},
+      {name:'Santa Lucia', lat:45.4411, lng:12.3210, step:'5', color:'#245f9e', popup:'Venezia Santa Lucia Station'}
+    ];
+
+    function markerIcon(num, color) {
+      return L.divIcon({
+        className: '',
+        html: `<div class="marker-num" style="background:${color}">${num}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+    }
+
+    function buildMap(id, center, zoom, points, walkIndexes, transferIndexes, lineColor, transferColor) {
+      const map = L.map(id, {scrollWheelZoom: true}).setView(center, zoom);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+
+      points.forEach((p, idx) => {
+        if (idx === 0 && id === 'map-day2') return; // day2 start hotel不单独标0号，后面重复回酒店即可
+        const label = p.step === '0' ? 'H' : p.step;
+        L.marker([p.lat, p.lng], {icon: markerIcon(label, p.color)}).addTo(map).bindPopup(`<strong>${p.popup}</strong>`);
+      });
+
+      const walkLatLngs = walkIndexes.map(i => [points[i].lat, points[i].lng]);
+      L.polyline(walkLatLngs, {color: lineColor, weight: 5, opacity: .85}).addTo(map);
+      const transferLatLngs = transferIndexes.map(i => [points[i].lat, points[i].lng]);
+      L.polyline(transferLatLngs, {color: transferColor, weight: 4, opacity: .8, dashArray: '7,8'}).addTo(map);
+    }
+
+    buildMap('map-day1', [45.4358, 12.3360], 13, pointsDay1, [1,2,3,4,5,6,7,8], [0,1], '#1b7f5c', '#84c8aa');
+    buildMap('map-day2', [45.4340, 12.3295], 14, pointsDay2, [0,1,2,3,4,5], [5,6], '#2c7d74', '#4d93e0');
+  </script>
+</body>
+</html>
